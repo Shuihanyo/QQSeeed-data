@@ -46,13 +46,17 @@
     }
 
     .top-card-header .title .icon {
-      width: 32px;
-      height: 32px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 50%;
+      width: 40px;
+      height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    .top-card-header .title .icon img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
     }
 
     .diamond-row {
@@ -1668,7 +1672,7 @@
   <div class="top-card" id="top-card">
     <div class="top-card-header">
       <div class="title">
-        <div class="icon">💎</div>
+        <div class="icon"><img src="images/icon_prop_diamond.png" alt="钻石"></div>
         钻石数量
       </div>
       <!-- 编辑模式下的时间显示 -->
@@ -2115,12 +2119,8 @@
       inputs.forEach(input => {
         const id = input.getAttribute('data-id');
         const value = parseInt(input.value) || 0;
-        localStorage.setItem('prop_' + id, value);
         currentData.items[id] = value;
       });
-
-      // 保存钻石数量
-      localStorage.setItem('diamond_count', currentData.diamond);
 
       // 检查是否是在编辑历史记录
       let history = JSON.parse(localStorage.getItem('prop_history') || '[]');
@@ -2138,19 +2138,30 @@
           currentData.dateStr = dateStr;
           history[editIndex] = currentData;
           localStorage.setItem('prop_history', JSON.stringify(history));
+          showToast('历史记录已更新！');
+          // 恢复原始页面数据
+          restoreOriginalPageData();
           // 清除编辑状态
           window.currentEditingHistoryIndex = null;
           window.currentEditingHistoryTimestamp = null;
-          // 隐藏时间编辑显示
           document.getElementById('edit-time-display').style.display = 'none';
-          // 隐藏取消编辑按钮
           document.getElementById('history-cancel-edit').classList.remove('show');
-          // 移除编辑模式样式
           document.body.classList.remove('edit-mode');
-          showToast('历史记录已更新！');
+          // 刷新历史记录列表
+          if (isHistoryMode) {
+            renderHistoryList();
+          }
           return;
         }
       }
+
+      // 非编辑模式下，保存到 localStorage
+      inputs.forEach(input => {
+        const id = input.getAttribute('data-id');
+        const value = parseInt(input.value) || 0;
+        localStorage.setItem('prop_' + id, value);
+      });
+      localStorage.setItem('diamond_count', currentData.diamond);
 
       // 添加到历史记录（新的记录）
       history.unshift(currentData);
@@ -2368,7 +2379,7 @@
             </div>
             <div class="history-items">
               <div class="history-item">
-                <div class="history-item-icon" style="background: linear-gradient(135deg, #4a80e2, #2d66c9); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px;">💎</div>
+                <div class="history-item-icon" style="display: flex; align-items: center; justify-content: center; overflow: hidden;"><img src="images/icon_prop_diamond.png" alt="钻石" style="width: 20px; height: 20px; object-fit: contain;"></div>
                 <span class="history-item-name">钻石</span>
                 <span class="history-item-value">${record.diamond}</span>
               </div>
@@ -2418,7 +2429,9 @@
 
     // 删除历史记录项
     function deleteHistoryItem(index) {
+      // 获取排序后的历史记录（与显示时一致）
       let history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+      history.sort((a, b) => b.timestamp - a.timestamp);
       history.splice(index, 1);
       localStorage.setItem('prop_history', JSON.stringify(history));
       renderHistoryList();
@@ -2427,9 +2440,21 @@
 
     // 加载历史数据到编辑状态（不自动保存到当前数据）
     function loadHistoryData(index) {
-      const history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+      // 获取排序后的历史记录（与显示时一致）
+      let history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+      history.sort((a, b) => b.timestamp - a.timestamp);
       const record = history[index];
       if (!record) return;
+
+      // 保存当前页面数据，用于编辑后恢复
+      window.originalPageData = {
+        diamond: document.getElementById('diamond-count').textContent,
+        items: {}
+      };
+      document.querySelectorAll('.item-input').forEach(input => {
+        const id = input.getAttribute('data-id');
+        window.originalPageData.items[id] = input.value;
+      });
 
       // 加载钻石数量到显示（但不保存到localStorage）
       document.getElementById('diamond-count').textContent = record.diamond;
@@ -2459,14 +2484,38 @@
       // 添加编辑模式样式
       document.body.classList.add('edit-mode');
 
-      showToast('已加载历史记录，可修改后保存');
-      // 切换回道具列表
-      toggleHistoryMode();
+      showToast('已加载历史记录，修改后点击保存');
+      // 从历史记录页面切换到道具列表页面进行编辑
+      if (isHistoryMode) {
+        toggleHistoryMode();
+      }
+    }
+
+    // 恢复原始页面数据
+    function restoreOriginalPageData() {
+      if (!window.originalPageData) return;
+      
+      // 恢复钻石数量
+      document.getElementById('diamond-count').textContent = window.originalPageData.diamond;
+      
+      // 恢复道具数量
+      Object.entries(window.originalPageData.items).forEach(([id, value]) => {
+        const input = document.querySelector(`.item-input[data-id="${id}"]`);
+        if (input) {
+          input.value = value;
+          updateItemValue(id, parseInt(value) || 0);
+        }
+      });
+      
+      // 清除保存的原始数据
+      window.originalPageData = null;
     }
 
     // 恢复历史数据（完全替换当前数据）
     function restoreHistoryData(index) {
-      const history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+      // 获取排序后的历史记录（与显示时一致）
+      let history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+      history.sort((a, b) => b.timestamp - a.timestamp);
       const record = history[index];
       if (!record) return;
 
@@ -2682,7 +2731,7 @@
             </div>
             <div class="history-items">
               <div class="history-item">
-                <div class="history-item-icon" style="background: linear-gradient(135deg, #4a80e2, #2d66c9); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px;">💎</div>
+                <div class="history-item-icon" style="display: flex; align-items: center; justify-content: center; overflow: hidden;"><img src="images/icon_prop_diamond.png" alt="钻石" style="width: 20px; height: 20px; object-fit: contain;"></div>
                 <span class="history-item-name">钻石</span>
                 <span class="history-item-value">${record.diamond}</span>
               </div>
@@ -2847,7 +2896,7 @@
       }
 
       const iconHtml = id === 'diamond'
-        ? `<div class="compare-item-icon" style="background: linear-gradient(135deg, #4a80e2, #2d66c9); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px;">💎</div>`
+        ? `<div class="compare-item-icon" style="display: flex; align-items: center; justify-content: center; overflow: hidden;"><img src="images/icon_prop_diamond.png" alt="钻石" style="width: 22px; height: 22px; object-fit: contain;"></div>`
         : `<div class="compare-item-icon"><img src="${icon || ''}" alt="${name}"></div>`;
 
       return `
