@@ -1,0 +1,3444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QQ飞车道具统计</title>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    
+    body {
+      background-color: #f5f6f8;
+      padding: 20px 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* 顶部统计大卡片 */
+    .top-card {
+      background: linear-gradient(135deg, #4a80e2, #2d66c9);
+      border-radius: 20px;
+      padding: 28px 24px;
+      color: #fff;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 20px rgba(45, 102, 201, 0.2);
+    }
+
+    .top-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .top-card-header .title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .top-card-header .title .icon {
+      width: 32px;
+      height: 32px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .diamond-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .diamond-display {
+      font-size: 42px;
+      font-weight: 600;
+      color: #fff;
+      padding: 8px 0;
+      min-width: 100px;
+    }
+
+    .diamond-display.editing {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 8px 16px;
+      outline: none;
+    }
+
+    .edit-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    .edit-btn.edit-mode {
+      transform: scaleX(-1);
+    }
+
+    .edit-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .top-card .stats-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* 操作按钮栏 */
+    .action-bar {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .action-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .action-btn.primary {
+      background: rgba(255, 255, 255, 0.9);
+      color: #2d66c9;
+    }
+
+    .action-btn.primary:hover {
+      background: #fff;
+    }
+
+    .action-icon {
+      font-size: 18px;
+    }
+
+    .stats-item {
+      text-align: center;
+    }
+
+    .stats-item .num {
+      font-size: 22px;
+      font-weight: 500;
+    }
+
+    .stats-item .label {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+
+    /* 道具列表卡片 */
+    .item-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .item-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px 20px 18px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      cursor: grab;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s, opacity 0.2s, margin 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      touch-action: pan-y;
+    }
+
+    .item-card:active {
+      cursor: grabbing;
+    }
+
+    .item-card.dragging {
+      opacity: 0.98;
+      box-shadow: 0 15px 40px rgba(45, 102, 201, 0.3);
+      z-index: 1000;
+      cursor: grabbing;
+      transition: box-shadow 0.2s ease;
+    }
+
+    @keyframes land {
+      0% {
+        transform: scale(1.05);
+      }
+      40% {
+        transform: scale(0.98);
+      }
+      70% {
+        transform: scale(1.02);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+
+
+    .item-card.pressing {
+      transform: scale(0.95);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .item-card-placeholder {
+      height: 0;
+      margin-bottom: 0;
+      border-radius: 16px;
+      background: #e8e8e8;
+      border: 2px dashed #ccc;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+    }
+
+    .item-card-placeholder.active {
+      height: 76px;
+      margin-bottom: 12px;
+    }
+
+    .item-card.squeezed {
+      transform: scale(0.92);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .item-card.bounce-back {
+      animation: bounceBack 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes bounceBack {
+      0% {
+        transform: scale(0.92);
+      }
+      60% {
+        transform: scale(1.03);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .item-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .item-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      /* background: #f0f2f5; */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .item-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+
+    .item-info .name {
+      font-size: 17px;
+      font-weight: 500;
+      color: #222;
+    }
+
+    .item-info .tag {
+      font-size: 13px;
+      color: #999;
+      margin-top: 4px;
+      background: #f0f2f5;
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .item-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .item-value {
+      font-size: 24px;
+      font-weight: 600;
+      color: #2d66c9;
+      width: 80px;
+      text-align: center;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.2s;
+      box-sizing: border-box;
+    }
+
+    .item-value:hover {
+      background: rgba(45, 102, 201, 0.1);
+    }
+
+    .item-input {
+      width: 80px;
+      font-size: 24px;
+      font-weight: 600;
+      color: #2d66c9;
+      border: 2px solid #2d66c9;
+      border-radius: 8px;
+      padding: 4px 8px;
+      text-align: center;
+      background: #fff;
+      outline: none;
+      display: none;
+      -moz-appearance: textfield;
+    }
+
+    .item-input::-webkit-outer-spin-button,
+    .item-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .item-input.editing {
+      display: block;
+    }
+
+    .item-value.hidden {
+      display: none;
+    }
+
+    .item-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(45, 102, 201, 0.1);
+      color: #2d66c9;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+    }
+
+    .item-btn:hover {
+      background: #2d66c9;
+      color: #fff;
+      transform: scale(1.1);
+    }
+
+    .item-btn:active {
+      transform: scale(0.95);
+    }
+
+    @media (hover: none) {
+      .item-btn:hover {
+        background: rgba(45, 102, 201, 0.1);
+        color: #2d66c9;
+        transform: scale(1);
+      }
+      
+      .item-btn.pressing {
+        background: #2d66c9;
+        color: #fff;
+        transform: scale(0.95);
+      }
+    }
+
+    /* 保存成功提示 */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: #4caf50;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 15px;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* 确认弹窗 */
+    .confirm-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .confirm-modal.show {
+      display: flex;
+    }
+
+    .confirm-content {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      width: 320px;
+      max-width: 90%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      animation: scaleIn 0.2s ease;
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .confirm-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .confirm-message {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.5;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .confirm-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .confirm-btn {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .confirm-btn.cancel {
+      background: #f5f6f8;
+      color: #666;
+    }
+
+    .confirm-btn.cancel:hover {
+      background: #e8e8e8;
+    }
+
+    .confirm-btn.confirm {
+      background: #2d66c9;
+      color: #fff;
+    }
+
+    .confirm-btn.confirm:hover {
+      background: #1e4fa3;
+    }
+
+    /* 删除确认弹窗警示样式 */
+    .confirm-modal.danger .confirm-title {
+      color: #d32f2f;
+    }
+
+    .confirm-modal.danger .confirm-btn.confirm {
+      background: linear-gradient(135deg, #f44336, #d32f2f);
+    }
+
+    .confirm-modal.danger .confirm-btn.confirm:hover {
+      background: linear-gradient(135deg, #d32f2f, #b71c1c);
+    }
+
+    /* 历史记录列表样式 */
+    .history-list {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .history-list.show {
+      display: flex;
+    }
+
+    .history-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .history-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f0f2f5;
+    }
+
+    .history-time {
+      font-size: 15px;
+      font-weight: 500;
+      color: #2d66c9;
+    }
+
+    .history-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .history-load {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(76, 175, 80, 0.1);
+      color: #4caf50;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .history-load:hover {
+      background: #4caf50;
+      color: #fff;
+    }
+
+    .history-edit {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(45, 102, 201, 0.1);
+      color: #2d66c9;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .history-edit:hover {
+      background: #2d66c9;
+      color: #fff;
+    }
+
+    .history-delete {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(244, 67, 54, 0.1);
+      color: #f44336;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .history-delete:hover {
+      background: #f44336;
+      color: #fff;
+    }
+
+    .history-items {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .history-item-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .history-item-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .history-item-name {
+      flex: 1;
+    }
+
+    .history-item-value {
+      font-weight: 600;
+      color: #2d66c9;
+    }
+
+    .empty-history {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+      font-size: 15px;
+    }
+
+    .empty-history-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      background: #2d66c9;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 16px;
+    }
+
+    .back-btn:hover {
+      background: #1e4fa3;
+    }
+
+    .item-list.hidden {
+      display: none;
+    }
+
+    /* 切换动画效果 */
+    .view-container {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .item-list,
+    .history-list {
+      opacity: 1;
+      transform: translateX(0);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .item-list.slide-out-left {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+
+    .item-list.slide-in-right {
+      animation: slideInFromRight 0.3s ease forwards;
+    }
+
+    .history-list.slide-out-right {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+
+    .history-list.slide-in-left {
+      animation: slideInFromLeft 0.3s ease forwards;
+    }
+
+    @keyframes slideInFromRight {
+      from {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes slideInFromLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* 返回按钮动画 */
+    .back-btn {
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.3s ease, transform 0.3s ease, background 0.2s;
+    }
+
+    .back-btn.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* 历史记录卡片入场动画 */
+    .history-card {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: cardFadeInUp 0.4s ease forwards;
+    }
+
+    .history-card:nth-child(1) { animation-delay: 0.05s; }
+    .history-card:nth-child(2) { animation-delay: 0.1s; }
+    .history-card:nth-child(3) { animation-delay: 0.15s; }
+    .history-card:nth-child(4) { animation-delay: 0.2s; }
+    .history-card:nth-child(5) { animation-delay: 0.25s; }
+    .history-card:nth-child(6) { animation-delay: 0.3s; }
+    .history-card:nth-child(7) { animation-delay: 0.35s; }
+    .history-card:nth-child(8) { animation-delay: 0.4s; }
+    .history-card:nth-child(9) { animation-delay: 0.45s; }
+    .history-card:nth-child(10) { animation-delay: 0.5s; }
+
+    @keyframes cardFadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 空历史记录动画 */
+    .empty-history {
+      opacity: 0;
+      animation: fadeIn 0.5s ease 0.2s forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* 对比模式样式 */
+    .history-action-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .history-action-bar .back-btn {
+      flex: 0 0 auto;
+      margin-bottom: 0;
+      padding: 10px 16px;
+      font-size: 14px;
+    }
+
+    .history-cancel-edit {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 10px;
+      background: #f44336;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+      margin-bottom: 16px;
+      align-self: flex-start;
+    }
+
+    .history-cancel-edit:hover {
+      background: #d32f2f;
+      transform: translateY(-1px);
+    }
+
+    .history-cancel-edit.show {
+      display: flex;
+    }
+
+    /* 编辑模式样式 */
+    body.edit-mode .item-list {
+      background: linear-gradient(135deg, rgba(255, 243, 224, 0.3), rgba(255, 224, 178, 0.3));
+      border-radius: 16px;
+      padding: 16px;
+      border: 2px dashed #ff9800;
+    }
+
+    body.edit-mode .item-card {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+    }
+
+    body.edit-mode .top-card {
+      background: linear-gradient(135deg, #ff9800, #f57c00);
+      animation: pulse 2s infinite;
+    }
+
+    /* 编辑模式时间显示 - 标题栏右侧 */
+    .edit-time-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .edit-time-date {
+      font-size: 13px;
+      color: rgba(255,255,255,0.9);
+      font-weight: 500;
+    }
+
+    .edit-time-icon-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      padding: 0;
+    }
+
+    .edit-time-icon-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .edit-time-icon-btn svg {
+      stroke: currentColor;
+    }
+
+    /* 时间编辑弹窗 */
+    .time-edit-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .time-edit-modal.show {
+      display: flex;
+    }
+
+    .time-edit-content {
+      background: #fff;
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%;
+      max-width: 320px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .time-edit-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .time-edit-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 16px;
+      color: #333;
+      outline: none;
+      margin-bottom: 16px;
+      box-sizing: border-box;
+    }
+
+    .time-edit-input:focus {
+      border-color: #ff9800;
+    }
+
+    .time-edit-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .time-edit-btn {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .time-edit-btn.cancel {
+      background: #f5f6f8;
+      color: #666;
+    }
+
+    .time-edit-btn.cancel:hover {
+      background: #e8e8e8;
+    }
+
+    .time-edit-btn.confirm {
+      background: linear-gradient(135deg, #ff9800, #f57c00);
+      color: #fff;
+    }
+
+    .time-edit-btn.confirm:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(255,152,0,0.3);
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        box-shadow: 0 8px 20px rgba(255, 152, 0, 0.3);
+      }
+      50% {
+        box-shadow: 0 8px 30px rgba(255, 152, 0, 0.5);
+      }
+    }
+
+    /* 对比模式选择样式优化 */
+    .history-card.selectable {
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+    }
+
+    .history-card.selectable:hover {
+      border-color: #2d66c9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(45, 102, 201, 0.2);
+    }
+
+    .history-card.selectable::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 16px;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      border: 2px solid #ddd;
+      border-radius: 50%;
+      background: #fff;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+
+    .history-card.selectable.selected {
+      border-color: #2d66c9;
+      background: linear-gradient(135deg, rgba(45, 102, 201, 0.05), rgba(45, 102, 201, 0.1));
+    }
+
+    .history-card.selectable.selected::before {
+      background: #2d66c9;
+      border-color: #2d66c9;
+    }
+
+    .history-card.selectable.selected::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 16px;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+      z-index: 11;
+    }
+
+    .history-card.selectable {
+      padding-left: 52px;
+    }
+
+    /* 选择提示样式优化 */
+    .selection-hint {
+      text-align: center;
+      color: #2d66c9;
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, rgba(45, 102, 201, 0.1), rgba(45, 102, 201, 0.05));
+      border-radius: 12px;
+      border: 2px dashed #2d66c9;
+      animation: hintPulse 2s infinite;
+    }
+
+    @keyframes hintPulse {
+      0%, 100% {
+        border-color: #2d66c9;
+        box-shadow: 0 0 0 0 rgba(45, 102, 201, 0.2);
+      }
+      50% {
+        border-color: #4a80e2;
+        box-shadow: 0 0 0 4px rgba(45, 102, 201, 0.1);
+      }
+    }
+
+    .selection-hint .count {
+      color: #f44336;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .compare-mode-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border: 2px solid #2d66c9;
+      border-radius: 12px;
+      background: #fff;
+      color: #2d66c9;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .compare-mode-btn:hover {
+      background: #2d66c9;
+      color: #fff;
+    }
+
+    .compare-mode-btn.active {
+      background: #2d66c9;
+      color: #fff;
+    }
+
+    .history-card {
+      position: relative;
+    }
+
+    .compare-actions {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      padding: 16px 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      gap: 12px;
+      z-index: 100;
+      animation: slideUp 0.3s ease;
+    }
+
+    .compare-actions.show {
+      display: flex;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .compare-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      background: #2d66c9;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .compare-btn:hover {
+      background: #1e4fa3;
+    }
+
+    .compare-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .cancel-compare-btn {
+      padding: 12px 24px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+      color: #666;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .cancel-compare-btn:hover {
+      border-color: #999;
+      color: #333;
+    }
+
+    /* 移动端对比模式按钮样式 */
+    @media (max-width: 480px) {
+      .compare-actions {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        transform: none;
+        width: 100%;
+        border-radius: 16px 16px 0 0;
+        padding: 16px 20px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(100%);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .compare-btn,
+      .cancel-compare-btn {
+        flex: 1;
+        padding: 14px 20px;
+        font-size: 16px;
+        border-radius: 12px;
+      }
+    }
+
+    /* 对比结果页面 */
+    .compare-result {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      animation: fadeIn 0.4s ease;
+      padding: 0 4px;
+    }
+
+    .compare-result.show {
+      display: flex;
+    }
+
+    .compare-header {
+      background: linear-gradient(135deg, #fff, #f8f9fa);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .compare-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 10px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .compare-dates {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .compare-date-box {
+      flex: 1;
+      text-align: center;
+      padding: 8px 6px;
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      border-radius: 8px;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+    }
+
+    .compare-date-box:first-child {
+      background: linear-gradient(135deg, #ffebee, #ffcdd2);
+    }
+
+    .compare-date-label {
+      font-size: 9px;
+      color: #666;
+      margin-bottom: 2px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .compare-date-value {
+      font-size: 11px;
+      font-weight: 600;
+      color: #2d66c9;
+    }
+
+    .compare-date-box:first-child .compare-date-value {
+      color: #d32f2f;
+    }
+
+    .compare-vs {
+      font-size: 12px;
+      font-weight: 700;
+      color: #666;
+      padding: 0 6px;
+      background: #f5f6f8;
+      border-radius: 6px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .compare-items {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    @media (max-width: 480px) {
+      .compare-items {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+      }
+    }
+
+    .compare-item-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 8px 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 4px;
+      animation: fadeInScale 0.3s ease forwards;
+      opacity: 0;
+      transform: scale(0.9);
+      position: relative;
+      overflow: hidden;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .compare-item-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .compare-item-card:nth-child(1) { animation-delay: 0.03s; }
+    .compare-item-card:nth-child(2) { animation-delay: 0.06s; }
+    .compare-item-card:nth-child(3) { animation-delay: 0.09s; }
+    .compare-item-card:nth-child(4) { animation-delay: 0.12s; }
+    .compare-item-card:nth-child(5) { animation-delay: 0.15s; }
+    .compare-item-card:nth-child(6) { animation-delay: 0.18s; }
+    .compare-item-card:nth-child(7) { animation-delay: 0.21s; }
+    .compare-item-card:nth-child(8) { animation-delay: 0.24s; }
+    .compare-item-card:nth-child(9) { animation-delay: 0.27s; }
+    .compare-item-card:nth-child(10) { animation-delay: 0.3s; }
+    .compare-item-card:nth-child(11) { animation-delay: 0.33s; }
+    .compare-item-card:nth-child(12) { animation-delay: 0.36s; }
+    .compare-item-card:nth-child(13) { animation-delay: 0.39s; }
+
+    @keyframes fadeInScale {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .compare-item-card.increase {
+      border-color: #4caf50;
+      background: linear-gradient(135deg, #fff, #f1f8e9);
+    }
+
+    .compare-item-card.decrease {
+      border-color: #f44336;
+      background: linear-gradient(135deg, #fff, #ffebee);
+    }
+
+    .compare-item-card.unchanged {
+      border-color: #e0e0e0;
+      background: #fafafa;
+    }
+
+    .compare-item-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+    }
+
+    .compare-item-card.increase::before {
+      background: linear-gradient(90deg, #4caf50, #81c784);
+    }
+
+    .compare-item-card.decrease::before {
+      background: linear-gradient(90deg, #f44336, #e57373);
+    }
+
+    .compare-item-card.unchanged::before {
+      background: #e0e0e0;
+    }
+
+    .compare-item-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .compare-item-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .compare-item-name {
+      font-size: 10px;
+      font-weight: 600;
+      color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      line-height: 1.2;
+    }
+
+    .compare-item-values {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-size: 9px;
+      background: #f5f6f8;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin: 1px 0;
+    }
+
+    .compare-value-old {
+      color: #999;
+      text-decoration: line-through;
+      font-size: 8px;
+    }
+
+    .compare-value-arrow {
+      color: #666;
+      font-size: 8px;
+    }
+
+    .compare-value-new {
+      font-weight: 700;
+      color: #2d66c9;
+      font-size: 10px;
+    }
+
+    .compare-change {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1;
+      min-width: 36px;
+    }
+
+    .compare-change.increase {
+      background: linear-gradient(135deg, #4caf50, #66bb6a);
+      color: #fff;
+      box-shadow: 0 1px 4px rgba(76, 175, 80, 0.3);
+    }
+
+    .compare-change.decrease {
+      background: linear-gradient(135deg, #f44336, #ef5350);
+      color: #fff;
+      box-shadow: 0 1px 4px rgba(244, 67, 54, 0.3);
+    }
+
+    .compare-change.unchanged {
+      background: #e0e0e0;
+      color: #757575;
+    }
+
+    .compare-change-icon {
+      font-size: 8px;
+    }
+
+    .compare-summary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      margin-top: 4px;
+      box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    .compare-summary-title {
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0.95;
+      margin-bottom: 8px;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+
+    .compare-summary-stats {
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      gap: 6px;
+    }
+
+    .compare-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+      min-width: 50px;
+    }
+
+    .compare-stat-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .compare-stat-label {
+      font-size: 9px;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+
+    /* 分享按钮 */
+    .share-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(238, 90, 90, 0.3);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .share-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(238, 90, 90, 0.4);
+    }
+
+    .share-btn:active {
+      transform: scale(0.95);
+    }
+
+    .share-btn.hidden {
+      display: none;
+    }
+
+    /* 对比结果页面顶部操作栏 */
+    .compare-result-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    /* 截图预览弹窗 */
+    .screenshot-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .screenshot-modal.show {
+      display: flex;
+    }
+
+    .screenshot-container {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      max-width: 100%;
+      max-height: 70vh;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+
+    .screenshot-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .screenshot-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .screenshot-btn {
+      padding: 12px 24px;
+      border-radius: 25px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .screenshot-btn.cancel {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+    }
+
+    .screenshot-btn.cancel:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .screenshot-btn.download {
+      background: linear-gradient(135deg, #4caf50, #45a049);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    }
+
+    .screenshot-btn.download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+    }
+
+    /* 截图时的特殊样式 */
+    .screenshot-capture {
+      background: #f5f6f8 !important;
+      padding: 16px !important;
+    }
+
+    .screenshot-capture .compare-result {
+      display: flex !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部统计卡片 - 钻石数量 -->
+  <div class="top-card" id="top-card">
+    <div class="top-card-header">
+      <div class="title">
+        <div class="icon">💎</div>
+        钻石数量
+      </div>
+      <!-- 编辑模式下的时间显示 -->
+      <div class="edit-time-header" id="edit-time-display" style="display: none;">
+        <span class="edit-time-date" id="edit-time-text"></span>
+        <button class="edit-time-icon-btn" id="edit-time-btn" title="编辑时间">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="diamond-row">
+      <div class="diamond-display" id="diamond-count" data-id="diamond">0</div>
+      <button class="edit-btn edit-mode" id="edit-diamond" title="编辑">✎</button>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-bar">
+      <button class="action-btn" id="history-btn">
+        <span class="action-icon">📜</span>
+        <span>历史记录</span>
+      </button>
+      <button class="action-btn primary" id="save-btn">
+        <span class="action-icon">💾</span>
+        <span>保存数据</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 历史记录页面操作栏 -->
+  <div class="history-action-bar" id="history-action-bar" style="display: none;">
+    <button class="back-btn" id="back-btn">
+      <span>←</span>
+      <span>返回道具列表</span>
+    </button>
+    <button class="compare-mode-btn" id="compare-mode-btn">
+      <span>📊</span>
+      <span>对比模式</span>
+    </button>
+  </div>
+
+  <!-- 选择提示 -->
+  <div class="selection-hint" id="selection-hint" style="display: none;">
+    请选择 <span class="count">2</span> 条历史记录进行对比
+  </div>
+
+  <!-- 道具列表 -->
+  <div class="item-list" id="item-list">
+    <!-- 取消编辑按钮（在编辑历史记录时显示） -->
+    <button class="history-cancel-edit" id="history-cancel-edit">
+      <span>←</span>
+      <span>取消编辑</span>
+    </button>
+    <!-- 宠物能量 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_prop_pet_energy.png" alt="宠物能量">
+        </div>
+        <div class="item-info">
+          <div class="name">宠物能量</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="pet_energy">−</button>
+        <span class="item-value" data-id="pet_energy">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="pet_energy">
+        <button class="item-btn plus" data-id="pet_energy">+</button>
+      </div>
+    </div>
+
+    <!-- 幻境能量 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_realm_energy.png" alt="幻境能量">
+        </div>
+        <div class="item-info">
+          <div class="name">幻境能量</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="realm_energy">−</button>
+        <span class="item-value" data-id="realm_energy">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="realm_energy">
+        <button class="item-btn plus" data-id="realm_energy">+</button>
+      </div>
+    </div>
+
+    <!-- 幻生水晶 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_prop_illusion_crystal.png" alt="幻生水晶">
+        </div>
+        <div class="item-info">
+          <div class="name">幻生水晶</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="illusion_crystal">−</button>
+        <span class="item-value" data-id="illusion_crystal">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="illusion_crystal">
+        <button class="item-btn plus" data-id="illusion_crystal">+</button>
+      </div>
+    </div>
+
+    <!-- 祈愿卡 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_prop_prayer_card.png" alt="祈愿卡">
+        </div>
+        <div class="item-info">
+          <div class="name">祈愿卡</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="prayer_card">−</button>
+        <span class="item-value" data-id="prayer_card">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="prayer_card">
+        <button class="item-btn plus" data-id="prayer_card">+</button>
+      </div>
+    </div>
+
+    <!-- 金晶能量 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_prop_gold_crystal_energy.png" alt="金晶能量">
+        </div>
+        <div class="item-info">
+          <div class="name">金晶能量</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="gold_crystal_energy">−</button>
+        <span class="item-value" data-id="gold_crystal_energy">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="gold_crystal_energy">
+        <button class="item-btn plus" data-id="gold_crystal_energy">+</button>
+      </div>
+    </div>
+
+    <!-- 水晶球 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_prop_crystal_ball.png" alt="水晶球">
+        </div>
+        <div class="item-info">
+          <div class="name">水晶球</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="crystal_ball">−</button>
+        <span class="item-value" data-id="crystal_ball">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="crystal_ball">
+        <button class="item-btn plus" data-id="crystal_ball">+</button>
+      </div>
+    </div>
+
+    <!-- 摘星币 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_prop_star_coin.png" alt="摘星币">
+        </div>
+        <div class="item-info">
+          <div class="name">摘星币</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="star_coin">−</button>
+        <span class="item-value" data-id="star_coin">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="star_coin">
+        <button class="item-btn plus" data-id="star_coin">+</button>
+      </div>
+    </div>
+
+    <!-- 星愿水晶 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_prop_starwish_crystal.png" alt="星愿水晶">
+        </div>
+        <div class="item-info">
+          <div class="name">星愿水晶</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="starwish_crystal">−</button>
+        <span class="item-value" data-id="starwish_crystal">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="starwish_crystal">
+        <button class="item-btn plus" data-id="starwish_crystal">+</button>
+      </div>
+    </div>
+
+    <!-- 许愿金币 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_prop_wish_coin.png" alt="许愿金币">
+        </div>
+        <div class="item-info">
+          <div class="name">许愿金币</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="wish_coin">−</button>
+        <span class="item-value" data-id="wish_coin">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="wish_coin">
+        <button class="item-btn plus" data-id="wish_coin">+</button>
+      </div>
+    </div>
+
+    <!-- 橙光能源 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_prop_orange_light_energy.png" alt="橙光能源">
+        </div>
+        <div class="item-info">
+          <div class="name">橙光能源</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="orange_light_energy">−</button>
+        <span class="item-value" data-id="orange_light_energy">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="orange_light_energy">
+        <button class="item-btn plus" data-id="orange_light_energy">+</button>
+      </div>
+    </div>
+
+    <!-- 机甲源石 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_prop_mecha_ore.png" alt="机甲源石">
+        </div>
+        <div class="item-info">
+          <div class="name">机甲源石</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="mecha_ore">−</button>
+        <span class="item-value" data-id="mecha_ore">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="mecha_ore">
+        <button class="item-btn plus" data-id="mecha_ore">+</button>
+      </div>
+    </div>
+
+    <!-- 时空沙漏 -->
+    <div class="item-card">
+      <div class="item-left">
+        <div class="item-icon">
+          <img src="images/icon_prop_time_sandglass.png" alt="时空沙漏">
+        </div>
+        <div class="item-info">
+          <div class="name">时空沙漏</div>
+        </div>
+      </div>
+      <div class="item-right">
+        <button class="item-btn minus" data-id="time_sandglass">−</button>
+        <span class="item-value" data-id="time_sandglass">0</span>
+        <input type="number" class="item-input" value="0" min="0" data-id="time_sandglass">
+        <button class="item-btn plus" data-id="time_sandglass">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 历史记录列表 -->
+  <div class="history-list" id="history-list"></div>
+
+  <!-- 对比结果页面 -->
+  <div class="compare-result" id="compare-result">
+    <div class="compare-result-header">
+      <button class="back-btn show" id="back-from-compare" style="opacity: 1; transform: translateY(0); margin-bottom: 0;">
+        <span>←</span>
+        <span>返回历史记录</span>
+      </button>
+      <button class="share-btn hidden" id="share-btn" title="分享截图">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="5" r="3"></circle>
+          <circle cx="6" cy="12" r="3"></circle>
+          <circle cx="18" cy="19" r="3"></circle>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="compare-header">
+      <div class="compare-title">📊 历史记录对比</div>
+      <div class="compare-dates">
+        <div class="compare-date-box">
+          <div class="compare-date-label">较早</div>
+          <div class="compare-date-value" id="compare-date-old">--</div>
+        </div>
+        <div class="compare-vs">VS</div>
+        <div class="compare-date-box">
+          <div class="compare-date-label">较晚</div>
+          <div class="compare-date-value" id="compare-date-new">--</div>
+        </div>
+      </div>
+    </div>
+    <div class="compare-items" id="compare-items"></div>
+    <div class="compare-summary">
+      <div class="compare-summary-title">对比统计</div>
+      <div class="compare-summary-stats">
+        <div class="compare-stat">
+          <div class="compare-stat-value" id="stat-increase">0</div>
+          <div class="compare-stat-label">增加</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-value" id="stat-decrease">0</div>
+          <div class="compare-stat-label">减少</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-value" id="stat-unchanged">0</div>
+          <div class="compare-stat-label">不变</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 对比操作按钮 -->
+  <div class="compare-actions" id="compare-actions">
+    <button class="cancel-compare-btn" id="cancel-compare-btn">取消</button>
+    <button class="compare-btn" id="compare-btn" disabled>开始对比</button>
+  </div>
+
+  <!-- 提示消息 -->
+  <div class="toast" id="toast">保存成功！</div>
+
+  <!-- 确认弹窗 -->
+  <div class="confirm-modal" id="confirm-modal">
+    <div class="confirm-content">
+      <div class="confirm-title">⚠️ 确认恢复</div>
+      <div class="confirm-message" id="confirm-message">确定要恢复到该历史记录吗？</div>
+      <div class="confirm-buttons">
+        <button class="confirm-btn cancel" id="confirm-cancel">取消</button>
+        <button class="confirm-btn confirm" id="confirm-ok">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 截图预览弹窗 -->
+  <div class="screenshot-modal" id="screenshot-modal">
+    <div class="screenshot-container" id="screenshot-container">
+      <img id="screenshot-img" alt="截图预览">
+    </div>
+    <div class="screenshot-actions">
+      <button class="screenshot-btn cancel" id="screenshot-cancel">取消</button>
+      <button class="screenshot-btn download" id="screenshot-download">保存图片</button>
+    </div>
+  </div>
+
+  <!-- 时间编辑弹窗 -->
+  <div class="time-edit-modal" id="time-edit-modal">
+    <div class="time-edit-content">
+      <div class="time-edit-title">📅 编辑记录时间</div>
+      <input type="datetime-local" class="time-edit-input" id="time-edit-input">
+      <div class="time-edit-buttons">
+        <button class="time-edit-btn cancel" id="time-edit-cancel">取消</button>
+        <button class="time-edit-btn confirm" id="time-edit-confirm">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 页面加载时从 localStorage 读取数据
+    function loadData() {
+      // 加载钻石数量
+      const diamondDisplay = document.getElementById('diamond-count');
+      const savedDiamond = localStorage.getItem('diamond_count');
+      if (savedDiamond !== null) {
+        diamondDisplay.textContent = savedDiamond;
+      }
+
+      // 加载道具数量
+      const inputs = document.querySelectorAll('.item-input');
+      inputs.forEach(input => {
+        const id = input.getAttribute('data-id');
+        const savedValue = localStorage.getItem('prop_' + id);
+        const valueSpan = document.querySelector(`.item-value[data-id="${id}"]`);
+        
+        if (savedValue !== null) {
+          input.value = savedValue;
+        }
+        
+        // 同步更新显示值（无论是否有保存的数据）
+        if (valueSpan) {
+          valueSpan.textContent = input.value;
+        }
+      });
+    }
+
+    // 道具名称映射
+    const itemNameMap = {
+      'pet_energy': '宠物能量',
+      'realm_energy': '幻境能量',
+      'illusion_crystal': '幻生水晶',
+      'prayer_card': '祈愿卡',
+      'gold_crystal_energy': '金晶能量',
+      'crystal_ball': '水晶球',
+      'star_coin': '摘星币',
+      'starwish_crystal': '星愿水晶',
+      'wish_coin': '许愿金币',
+      'orange_light_energy': '橙光能源',
+      'mecha_ore': '机甲源石',
+      'time_sandglass': '时空沙漏'
+    };
+
+    // 道具图标映射
+    const itemIconMap = {
+      'pet_energy': 'images/icon_prop_pet_energy.png',
+      'realm_energy': 'images/icon_realm_energy.png',
+      'illusion_crystal': 'images/icon_prop_illusion_crystal.png',
+      'prayer_card': 'images/icon_prop_prayer_card.png',
+      'gold_crystal_energy': 'images/icon_prop_gold_crystal_energy.png',
+      'crystal_ball': 'images/icon_prop_crystal_ball.png',
+      'star_coin': 'images/icon_prop_star_coin.png',
+      'starwish_crystal': 'images/icon_prop_starwish_crystal.png',
+      'wish_coin': 'images/icon_prop_wish_coin.png',
+      'orange_light_energy': 'images/icon_prop_orange_light_energy.png',
+      'mecha_ore': 'images/icon_prop_mecha_ore.png',
+      'time_sandglass': 'images/icon_prop_time_sandglass.png'
+    };
+
+    // 保存数据到 localStorage 和历史记录
+    function saveData() {
+      // 保存道具数量到当前数据
+      const inputs = document.querySelectorAll('.item-input');
+      const currentData = {
+        diamond: parseInt(document.getElementById('diamond-count').textContent) || 0,
+        items: {},
+        timestamp: Date.now(),
+        dateStr: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-')
+      };
+
+      inputs.forEach(input => {
+        const id = input.getAttribute('data-id');
+        const value = parseInt(input.value) || 0;
+        localStorage.setItem('prop_' + id, value);
+        currentData.items[id] = value;
+      });
+
+      // 保存钻石数量
+      localStorage.setItem('diamond_count', currentData.diamond);
+
+      // 检查是否是在编辑历史记录
+      let history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+      if (window.currentEditingHistoryIndex !== null && window.currentEditingHistoryIndex !== undefined) {
+        // 更新已有的历史记录
+        const editIndex = window.currentEditingHistoryIndex;
+        if (history[editIndex]) {
+          // 使用编辑后的时间（如果有）
+          let timestamp = window.currentEditingHistoryTimestamp;
+          // 根据时间戳生成新的日期字符串
+          let dateStr = new Date(timestamp).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-');
+
+          // 更新时间戳和日期字符串
+          currentData.timestamp = timestamp;
+          currentData.dateStr = dateStr;
+          history[editIndex] = currentData;
+          localStorage.setItem('prop_history', JSON.stringify(history));
+          // 清除编辑状态
+          window.currentEditingHistoryIndex = null;
+          window.currentEditingHistoryTimestamp = null;
+          // 隐藏时间编辑显示
+          document.getElementById('edit-time-display').style.display = 'none';
+          // 隐藏取消编辑按钮
+          document.getElementById('history-cancel-edit').classList.remove('show');
+          // 移除编辑模式样式
+          document.body.classList.remove('edit-mode');
+          showToast('历史记录已更新！');
+          return;
+        }
+      }
+
+      // 添加到历史记录（新的记录）
+      history.unshift(currentData);
+      // 限制历史记录数量最多50条
+      if (history.length > 50) {
+        history = history.slice(0, 50);
+      }
+      localStorage.setItem('prop_history', JSON.stringify(history));
+
+      showToast('保存成功！');
+    }
+
+    // 更新道具数值显示
+    function updateItemValue(id, value) {
+      const input = document.querySelector(`.item-input[data-id="${id}"]`);
+      const valueSpan = document.querySelector(`.item-value[data-id="${id}"]`);
+      if (input && valueSpan) {
+        input.value = value;
+        valueSpan.textContent = value;
+      }
+    }
+
+    // 道具编辑功能
+    document.querySelectorAll('.item-value').forEach(valueSpan => {
+      valueSpan.addEventListener('click', function() {
+        const id = this.getAttribute('data-id');
+        const input = document.querySelector(`.item-input[data-id="${id}"]`);
+        
+        // 隐藏显示值，显示输入框
+        this.classList.add('hidden');
+        input.classList.add('editing');
+        input.focus();
+        input.select();
+      });
+    });
+
+    // 输入框失去焦点或按回车时保存
+    document.querySelectorAll('.item-input').forEach(input => {
+      input.addEventListener('blur', function() {
+        const id = this.getAttribute('data-id');
+        const valueSpan = document.querySelector(`.item-value[data-id="${id}"]`);
+        let value = parseInt(this.value) || 0;
+        if (value < 0) value = 0;
+        
+        this.value = value;
+        valueSpan.textContent = value;
+        
+        // 隐藏输入框，显示值
+        this.classList.remove('editing');
+        valueSpan.classList.remove('hidden');
+        
+        // 自动保存
+        localStorage.setItem('prop_' + id, value);
+      });
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          this.blur();
+        }
+      });
+    });
+
+    // 加减按钮功能
+    document.querySelectorAll('.item-btn').forEach(btn => {
+      // 触摸开始时添加 pressing 类
+      btn.addEventListener('touchstart', function(e) {
+        this.classList.add('pressing');
+      }, { passive: true });
+      
+      // 触摸结束时移除 pressing 类
+      btn.addEventListener('touchend', function(e) {
+        this.classList.remove('pressing');
+      }, { passive: true });
+      
+      // 触摸取消时移除 pressing 类
+      btn.addEventListener('touchcancel', function(e) {
+        this.classList.remove('pressing');
+      }, { passive: true });
+    });
+    
+    document.querySelectorAll('.item-btn.minus').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const id = this.getAttribute('data-id');
+        const input = document.querySelector(`.item-input[data-id="${id}"]`);
+        let value = parseInt(input.value) || 0;
+        if (value > 0) {
+          value--;
+          updateItemValue(id, value);
+          localStorage.setItem('prop_' + id, value);
+        }
+        // 移除焦点，恢复按钮样式
+        this.blur();
+      });
+    });
+
+    document.querySelectorAll('.item-btn.plus').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const id = this.getAttribute('data-id');
+        const input = document.querySelector(`.item-input[data-id="${id}"]`);
+        let value = parseInt(input.value) || 0;
+        value++;
+        updateItemValue(id, value);
+        localStorage.setItem('prop_' + id, value);
+        // 移除焦点，恢复按钮样式
+        this.blur();
+      });
+    });
+
+    // 显示提示消息
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+
+    // 显示确认弹窗
+    let confirmCallback = null;
+    function showConfirmModal(title, message, onConfirm, isDanger = false) {
+      const modal = document.getElementById('confirm-modal');
+      const titleEl = modal.querySelector('.confirm-title');
+      const messageEl = document.getElementById('confirm-message');
+
+      titleEl.textContent = title;
+      messageEl.textContent = message;
+      confirmCallback = onConfirm;
+
+      // 设置警示样式
+      if (isDanger) {
+        modal.classList.add('danger');
+      } else {
+        modal.classList.remove('danger');
+      }
+
+      modal.classList.add('show');
+    }
+
+    // 确认弹窗按钮事件
+    document.getElementById('confirm-ok').addEventListener('click', function() {
+      const modal = document.getElementById('confirm-modal');
+      modal.classList.remove('show');
+      modal.classList.remove('danger');
+      if (confirmCallback) {
+        confirmCallback();
+        confirmCallback = null;
+      }
+    });
+
+    document.getElementById('confirm-cancel').addEventListener('click', function() {
+      const modal = document.getElementById('confirm-modal');
+      modal.classList.remove('show');
+      modal.classList.remove('danger');
+      confirmCallback = null;
+    });
+
+    // 点击弹窗背景关闭
+    document.getElementById('confirm-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('show');
+        this.classList.remove('danger');
+        confirmCallback = null;
+      }
+    });
+
+    // 保存按钮点击事件
+    document.getElementById('save-btn').addEventListener('click', saveData);
+
+    // 历史记录相关功能
+    const itemList = document.getElementById('item-list');
+    const historyList = document.getElementById('history-list');
+    const historyBtn = document.getElementById('history-btn');
+    const backBtn = document.getElementById('back-btn');
+    let isHistoryMode = false;
+
+    // 渲染历史记录列表
+    function renderHistoryList() {
+      let history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+
+      // 按时间戳降序排序（最新的在前）
+      history.sort((a, b) => b.timestamp - a.timestamp);
+
+      if (history.length === 0) {
+        historyList.innerHTML = `
+          <div class="empty-history">
+            <div class="empty-history-icon">📭</div>
+            <div>暂无历史记录</div>
+            <div style="font-size: 13px; margin-top: 8px;">点击"保存数据"按钮保存当前道具数量</div>
+          </div>
+        `;
+        return;
+      }
+
+      historyList.innerHTML = history.map((record, index) => {
+        const itemsHtml = Object.entries(record.items).map(([id, value]) => `
+          <div class="history-item">
+            <div class="history-item-icon">
+              <img src="${itemIconMap[id] || ''}" alt="${itemNameMap[id] || id}">
+            </div>
+            <span class="history-item-name">${itemNameMap[id] || id}</span>
+            <span class="history-item-value">${value}</span>
+          </div>
+        `).join('');
+
+        return `
+          <div class="history-card" data-index="${index}">
+            <div class="history-header">
+              <span class="history-time">${record.dateStr}</span>
+              <div class="history-actions">
+                <button class="history-load" data-index="${index}" title="加载">⬇</button>
+                <button class="history-edit" data-index="${index}" title="编辑">✎</button>
+                <button class="history-delete" data-index="${index}" title="删除">×</button>
+              </div>
+            </div>
+            <div class="history-items">
+              <div class="history-item">
+                <div class="history-item-icon" style="background: linear-gradient(135deg, #4a80e2, #2d66c9); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px;">💎</div>
+                <span class="history-item-name">钻石</span>
+                <span class="history-item-value">${record.diamond}</span>
+              </div>
+              ${itemsHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 添加加载按钮事件
+      historyList.querySelectorAll('.history-load').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const index = parseInt(this.getAttribute('data-index'));
+          const history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+          const record = history[index];
+          if (record) {
+            showConfirmModal(
+              `确定要恢复到 ${record.dateStr} 的历史记录数据吗？`,
+              '当前数据将被替换。',
+              () => restoreHistoryData(index)
+            );
+          }
+        });
+      });
+
+      // 添加编辑按钮事件
+      historyList.querySelectorAll('.history-edit').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const index = parseInt(this.getAttribute('data-index'));
+          loadHistoryData(index);
+        });
+      });
+
+      // 添加删除按钮事件
+      historyList.querySelectorAll('.history-delete').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const index = parseInt(this.getAttribute('data-index'));
+          showConfirmModal('🗑️ 确认删除', '确定要删除这条历史记录吗？删除后无法恢复。', function() {
+            deleteHistoryItem(index);
+          }, true);
+        });
+      });
+    }
+
+    // 删除历史记录项
+    function deleteHistoryItem(index) {
+      let history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+      history.splice(index, 1);
+      localStorage.setItem('prop_history', JSON.stringify(history));
+      renderHistoryList();
+      showToast('已删除历史记录');
+    }
+
+    // 加载历史数据到编辑状态（不自动保存到当前数据）
+    function loadHistoryData(index) {
+      const history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+      const record = history[index];
+      if (!record) return;
+
+      // 加载钻石数量到显示（但不保存到localStorage）
+      document.getElementById('diamond-count').textContent = record.diamond;
+
+      // 加载道具数量到输入框（但不保存到localStorage）
+      Object.entries(record.items).forEach(([id, value]) => {
+        const input = document.querySelector(`.item-input[data-id="${id}"]`);
+        if (input) {
+          input.value = value;
+          updateItemValue(id, value);
+        }
+      });
+
+      // 记录当前加载的历史记录索引和时间戳，用于后续更新
+      window.currentEditingHistoryIndex = index;
+      window.currentEditingHistoryTimestamp = record.timestamp;
+
+      // 显示并设置时间显示
+      const timeDisplay = document.getElementById('edit-time-display');
+      const timeText = document.getElementById('edit-time-text');
+      timeDisplay.style.display = 'flex';
+      timeText.textContent = record.dateStr;
+
+      // 显示取消编辑按钮
+      document.getElementById('history-cancel-edit').classList.add('show');
+
+      // 添加编辑模式样式
+      document.body.classList.add('edit-mode');
+
+      showToast('已加载历史记录，可修改后保存');
+      // 切换回道具列表
+      toggleHistoryMode();
+    }
+
+    // 恢复历史数据（完全替换当前数据）
+    function restoreHistoryData(index) {
+      const history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+      const record = history[index];
+      if (!record) return;
+
+      // 恢复钻石数量
+      document.getElementById('diamond-count').textContent = record.diamond;
+      localStorage.setItem('diamond_count', record.diamond);
+
+      // 恢复道具数量
+      Object.entries(record.items).forEach(([id, value]) => {
+        updateItemValue(id, value);
+        localStorage.setItem('prop_' + id, value);
+      });
+
+      // 清除编辑状态
+      window.currentEditingHistoryIndex = null;
+
+      showToast('已恢复历史数据');
+      // 切换回道具列表
+      toggleHistoryMode();
+    }
+
+    // 切换历史记录模式
+    function toggleHistoryMode() {
+      isHistoryMode = !isHistoryMode;
+      const topCard = document.getElementById('top-card');
+      const historyActionBar = document.getElementById('history-action-bar');
+
+      if (isHistoryMode) {
+        // 从道具列表切换到历史记录
+        // 1. 隐藏顶部卡片
+        topCard.style.display = 'none';
+
+        // 2. 道具列表向左滑出
+        itemList.classList.add('slide-out-left');
+
+        setTimeout(() => {
+          itemList.classList.add('hidden');
+          itemList.classList.remove('slide-out-left');
+
+          // 3. 显示历史记录并从右滑入
+          historyList.classList.add('show');
+          historyList.classList.add('slide-in-right');
+
+          // 4. 显示历史记录操作栏（包含返回按钮和对比模式按钮）
+          historyActionBar.style.display = 'flex';
+          backBtn.classList.add('show');
+
+          // 5. 更新按钮文字
+          historyBtn.innerHTML = '<span class="action-icon">📋</span><span>道具列表</span>';
+
+          // 6. 渲染历史记录
+          renderHistoryList();
+
+          // 清除动画类
+          setTimeout(() => {
+            historyList.classList.remove('slide-in-right');
+          }, 300);
+        }, 300);
+      } else {
+        // 从历史记录切换到道具列表
+        // 1. 历史记录向右滑出
+        historyList.classList.add('slide-out-right');
+        backBtn.classList.remove('show');
+
+        setTimeout(() => {
+          historyList.classList.remove('show');
+          historyList.classList.remove('slide-out-right');
+
+          // 2. 显示道具列表并从左滑入
+          itemList.classList.remove('hidden');
+          itemList.classList.add('slide-in-left');
+
+          // 3. 显示顶部卡片
+          topCard.style.display = 'block';
+
+          // 4. 隐藏历史记录操作栏
+          historyActionBar.style.display = 'none';
+          compareModeBtn.classList.remove('active');
+          selectionHint.style.display = 'none';
+          compareActions.classList.remove('show');
+
+          // 5. 更新按钮文字
+          historyBtn.innerHTML = '<span class="action-icon">📜</span><span>历史记录</span>';
+
+          // 清除动画类
+          setTimeout(() => {
+            itemList.classList.remove('slide-in-left');
+          }, 300);
+        }, 300);
+      }
+    }
+
+    // 历史记录按钮点击事件
+    historyBtn.addEventListener('click', toggleHistoryMode);
+
+    // 返回按钮点击事件
+    backBtn.addEventListener('click', function() {
+      if (isCompareMode) {
+        exitCompareMode();
+      } else if (isCompareResult) {
+        exitCompareResult();
+      } else {
+        toggleHistoryMode();
+      }
+    });
+
+    // 取消编辑按钮点击事件
+    document.getElementById('history-cancel-edit').addEventListener('click', function() {
+      // 清除编辑状态
+      window.currentEditingHistoryIndex = null;
+      window.currentEditingHistoryTimestamp = null;
+      // 隐藏时间编辑显示
+      document.getElementById('edit-time-display').style.display = 'none';
+      // 隐藏取消编辑按钮
+      this.classList.remove('show');
+      // 移除编辑模式样式
+      document.body.classList.remove('edit-mode');
+      // 重新加载当前保存的数据（放弃编辑）
+      loadData();
+      showToast('已取消编辑');
+      // 返回历史记录页面
+      toggleHistoryMode();
+    });
+
+    // ==================== 历史记录对比功能 ====================
+    const compareModeBtn = document.getElementById('compare-mode-btn');
+    const selectionHint = document.getElementById('selection-hint');
+    const compareActions = document.getElementById('compare-actions');
+    const compareBtn = document.getElementById('compare-btn');
+    const cancelCompareBtn = document.getElementById('cancel-compare-btn');
+    const compareResult = document.getElementById('compare-result');
+    const backFromCompareBtn = document.getElementById('back-from-compare');
+
+    // 对比结果页面返回按钮点击事件
+    backFromCompareBtn.addEventListener('click', exitCompareResult);
+
+    let isCompareMode = false;
+    let isCompareResult = false;
+    let selectedIndices = [];
+
+    // 进入对比模式
+    function enterCompareMode() {
+      isCompareMode = true;
+      selectedIndices = [];
+
+      // 显示对比模式UI
+      compareModeBtn.classList.add('active');
+      selectionHint.style.display = 'block';
+      compareActions.classList.add('show');
+      updateSelectionHint();
+
+      // 重新渲染历史记录列表，添加选择功能
+      renderHistoryListForCompare();
+    }
+
+    // 退出对比模式
+    function exitCompareMode() {
+      isCompareMode = false;
+      selectedIndices = [];
+
+      // 隐藏对比模式UI
+      compareModeBtn.classList.remove('active');
+      selectionHint.style.display = 'none';
+      compareActions.classList.remove('show');
+      compareBtn.disabled = true;
+
+      // 恢复正常历史记录列表
+      renderHistoryList();
+    }
+
+    // 更新选择提示
+    function updateSelectionHint() {
+      const remaining = 2 - selectedIndices.length;
+      selectionHint.innerHTML = remaining > 0
+        ? `请选择 <span class="count">${remaining}</span> 条历史记录进行对比`
+        : '已选择 2 条记录，可以点击"开始对比"按钮';
+    }
+
+    // 渲染对比模式的历史记录列表
+    function renderHistoryListForCompare() {
+      let history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+
+      // 按时间戳降序排序（最新的在前）
+      history.sort((a, b) => b.timestamp - a.timestamp);
+
+      if (history.length === 0) {
+        historyList.innerHTML = `
+          <div class="empty-history">
+            <div class="empty-history-icon">📭</div>
+            <div>暂无历史记录</div>
+            <div style="font-size: 13px; margin-top: 8px;">点击"保存数据"按钮保存当前道具数量</div>
+          </div>
+        `;
+        return;
+      }
+
+      historyList.innerHTML = history.map((record, index) => {
+        const isSelected = selectedIndices.includes(index);
+        const itemsHtml = Object.entries(record.items).map(([id, value]) => `
+          <div class="history-item">
+            <div class="history-item-icon">
+              <img src="${itemIconMap[id] || ''}" alt="${itemNameMap[id] || id}">
+            </div>
+            <span class="history-item-name">${itemNameMap[id] || id}</span>
+            <span class="history-item-value">${value}</span>
+          </div>
+        `).join('');
+
+        return `
+          <div class="history-card selectable ${isSelected ? 'selected' : ''}" data-index="${index}">
+            <div class="history-header">
+              <span class="history-time">${record.dateStr}</span>
+            </div>
+            <div class="history-items">
+              <div class="history-item">
+                <div class="history-item-icon" style="background: linear-gradient(135deg, #4a80e2, #2d66c9); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px;">💎</div>
+                <span class="history-item-name">钻石</span>
+                <span class="history-item-value">${record.diamond}</span>
+              </div>
+              ${itemsHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 添加选择事件
+      historyList.querySelectorAll('.history-card.selectable').forEach(card => {
+        card.addEventListener('click', function() {
+          const index = parseInt(this.getAttribute('data-index'));
+          toggleSelection(index, this);
+        });
+      });
+    }
+
+    // 切换选择状态
+    function toggleSelection(index, cardElement) {
+      const selectedIndex = selectedIndices.indexOf(index);
+
+      if (selectedIndex > -1) {
+        // 取消选择
+        selectedIndices.splice(selectedIndex, 1);
+        cardElement.classList.remove('selected');
+      } else if (selectedIndices.length < 2) {
+        // 添加选择
+        selectedIndices.push(index);
+        cardElement.classList.add('selected');
+      } else {
+        // 已经选了2个，替换最早选择的
+        const firstCard = historyList.querySelector(`[data-index="${selectedIndices[0]}"]`);
+        if (firstCard) firstCard.classList.remove('selected');
+        selectedIndices.shift();
+        selectedIndices.push(index);
+        cardElement.classList.add('selected');
+      }
+
+      updateSelectionHint();
+      compareBtn.disabled = selectedIndices.length !== 2;
+    }
+
+    // 开始对比
+    function startCompare() {
+      if (selectedIndices.length !== 2) return;
+
+      const history = JSON.parse(localStorage.getItem('prop_history') || '[]');
+      const record1 = history[selectedIndices[0]];
+      const record2 = history[selectedIndices[1]];
+
+      // 确定较早和较晚的记录
+      let oldRecord, newRecord;
+      if (record1.timestamp < record2.timestamp) {
+        oldRecord = record1;
+        newRecord = record2;
+      } else {
+        oldRecord = record2;
+        newRecord = record1;
+      }
+
+      // 显示对比结果
+      showCompareResult(oldRecord, newRecord);
+    }
+
+    // 显示对比结果
+    function showCompareResult(oldRecord, newRecord) {
+      isCompareResult = true;
+      isCompareMode = false;
+
+      // 隐藏历史记录列表和对比模式UI
+      historyList.classList.remove('show');
+      document.getElementById('history-action-bar').style.display = 'none';
+      selectionHint.style.display = 'none';
+      compareActions.classList.remove('show');
+
+      // 显示对比结果
+      compareResult.classList.add('show');
+
+      // 设置日期
+      document.getElementById('compare-date-old').textContent = oldRecord.dateStr;
+      document.getElementById('compare-date-new').textContent = newRecord.dateStr;
+
+      // 收集所有道具ID
+      const allItemIds = new Set([
+        ...Object.keys(oldRecord.items),
+        ...Object.keys(newRecord.items)
+      ]);
+
+      // 生成对比项
+      let increaseCount = 0;
+      let decreaseCount = 0;
+      let unchangedCount = 0;
+
+      const compareItemsHtml = [];
+
+      // 钻石对比
+      const diamondChange = newRecord.diamond - oldRecord.diamond;
+      if (diamondChange > 0) increaseCount++;
+      else if (diamondChange < 0) decreaseCount++;
+      else unchangedCount++;
+
+      compareItemsHtml.push(createCompareItemHtml({
+        id: 'diamond',
+        name: '钻石',
+        icon: null,
+        oldValue: oldRecord.diamond,
+        newValue: newRecord.diamond,
+        change: diamondChange
+      }));
+
+      // 道具对比
+      Array.from(allItemIds).forEach(id => {
+        const oldValue = oldRecord.items[id] || 0;
+        const newValue = newRecord.items[id] || 0;
+        const change = newValue - oldValue;
+
+        if (change > 0) increaseCount++;
+        else if (change < 0) decreaseCount++;
+        else unchangedCount++;
+
+        compareItemsHtml.push(createCompareItemHtml({
+          id,
+          name: itemNameMap[id] || id,
+          icon: itemIconMap[id],
+          oldValue,
+          newValue,
+          change
+        }));
+      });
+
+      document.getElementById('compare-items').innerHTML = compareItemsHtml.join('');
+
+      // 更新统计
+      document.getElementById('stat-increase').textContent = increaseCount;
+      document.getElementById('stat-decrease').textContent = decreaseCount;
+      document.getElementById('stat-unchanged').textContent = unchangedCount;
+
+      // 更新返回按钮文字
+      backBtn.querySelector('span:last-child').textContent = '返回历史记录';
+
+      // 显示分享按钮
+      document.getElementById('share-btn').classList.remove('hidden');
+    }
+
+    // 创建对比项HTML
+    function createCompareItemHtml({ id, name, icon, oldValue, newValue, change }) {
+      let changeClass, changeText, changeIcon;
+
+      if (change > 0) {
+        changeClass = 'increase';
+        changeText = `+${change}`;
+        changeIcon = '↑';
+      } else if (change < 0) {
+        changeClass = 'decrease';
+        changeText = `${change}`;
+        changeIcon = '↓';
+      } else {
+        changeClass = 'unchanged';
+        changeText = '-';
+        changeIcon = '';
+      }
+
+      const iconHtml = id === 'diamond'
+        ? `<div class="compare-item-icon" style="background: linear-gradient(135deg, #4a80e2, #2d66c9); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px;">💎</div>`
+        : `<div class="compare-item-icon"><img src="${icon || ''}" alt="${name}"></div>`;
+
+      return `
+        <div class="compare-item-card ${changeClass}">
+          ${iconHtml}
+          <div class="compare-item-name">${name}</div>
+          <div class="compare-item-values">
+            <span class="compare-value-old">${oldValue}</span>
+            <span class="compare-value-arrow">→</span>
+            <span class="compare-value-new">${newValue}</span>
+          </div>
+          <div class="compare-change ${changeClass}">
+            ${changeIcon ? `<span class="compare-change-icon">${changeIcon}</span>` : ''}
+            <span>${changeText}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // 退出对比结果
+    function exitCompareResult() {
+      isCompareResult = false;
+      selectedIndices = [];
+
+      // 隐藏对比结果
+      compareResult.classList.remove('show');
+
+      // 显示历史记录列表和操作栏
+      historyList.classList.add('show');
+      document.getElementById('history-action-bar').style.display = 'flex';
+      compareModeBtn.classList.remove('active');
+
+      // 恢复正常列表
+      renderHistoryList();
+
+      // 恢复返回按钮文字
+      backBtn.querySelector('span:last-child').textContent = '返回道具列表';
+
+      // 隐藏分享按钮
+      document.getElementById('share-btn').classList.add('hidden');
+    }
+
+    // 对比模式按钮点击事件
+    compareModeBtn.addEventListener('click', function() {
+      if (isCompareMode) {
+        exitCompareMode();
+      } else {
+        enterCompareMode();
+      }
+    });
+
+    // 开始对比按钮点击事件
+    compareBtn.addEventListener('click', startCompare);
+
+    // 取消对比按钮点击事件
+    cancelCompareBtn.addEventListener('click', exitCompareMode);
+
+    // 钻石编辑功能
+    let isEditingDiamond = false;
+    const editBtn = document.getElementById('edit-diamond');
+    const diamondDisplay = document.getElementById('diamond-count');
+
+    editBtn.addEventListener('click', function() {
+      if (!isEditingDiamond) {
+        // 进入编辑模式
+        diamondDisplay.contentEditable = true;
+        diamondDisplay.classList.add('editing');
+        diamondDisplay.focus();
+        editBtn.textContent = '✓';
+        editBtn.title = '完成';
+        editBtn.classList.remove('edit-mode');
+        isEditingDiamond = true;
+      } else {
+        // 退出编辑模式并保存
+        diamondDisplay.contentEditable = false;
+        diamondDisplay.classList.remove('editing');
+        editBtn.textContent = '✎';
+        editBtn.title = '编辑';
+        editBtn.classList.add('edit-mode');
+        isEditingDiamond = false;
+
+        // 保存到 localStorage
+        const value = diamondDisplay.textContent.trim();
+        const numValue = parseInt(value) || 0;
+        diamondDisplay.textContent = numValue;
+        localStorage.setItem('diamond_count', numValue);
+        showToast('钻石数量已保存！');
+      }
+    });
+
+    // 限制只能输入数字
+    diamondDisplay.addEventListener('keypress', function(e) {
+      // 只允许数字键
+      const char = String.fromCharCode(e.which);
+      if (!/[0-9]/.test(char)) {
+        e.preventDefault();
+      }
+    });
+
+    // 粘贴时过滤非数字
+    diamondDisplay.addEventListener('paste', function(e) {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      const numText = text.replace(/[^0-9]/g, '');
+      document.execCommand('insertText', false, numText);
+    });
+
+    // 按回车键完成编辑
+    diamondDisplay.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        editBtn.click();
+      }
+    });
+
+    // 页面加载时读取数据
+    loadData();
+
+    // ==================== 长按拖动排序功能 ====================
+    (function() {
+      const itemList = document.querySelector('.item-list');
+      const itemCards = document.querySelectorAll('.item-card');
+      
+      let longPressTimer = null;
+      let isDragging = false;
+      let draggedItem = null;
+      let placeholder = null;
+      let startY = 0;
+      let currentY = 0;
+      let itemHeight = 0;
+      const LONG_PRESS_DURATION = 500; // 长按触发时间（毫秒）
+
+      // 创建占位符
+      function createPlaceholder(height) {
+        const div = document.createElement('div');
+        div.className = 'item-card-placeholder';
+        // 使用 requestAnimationFrame 确保动画触发
+        requestAnimationFrame(() => {
+          div.classList.add('active');
+        });
+        return div;
+      }
+
+      // 获取元素在列表中的索引
+      function getItemIndex(item) {
+        const items = Array.from(itemList.querySelectorAll('.item-card'));
+        return items.indexOf(item);
+      }
+
+      // 交换元素位置
+      function swapItems(fromIndex, toIndex) {
+        const items = Array.from(itemList.querySelectorAll('.item-card'));
+        if (fromIndex < toIndex) {
+          itemList.insertBefore(items[fromIndex], items[toIndex].nextSibling);
+        } else {
+          itemList.insertBefore(items[fromIndex], items[toIndex]);
+        }
+      }
+
+        // 开始长按
+      function startLongPress(e, item) {
+        if (isDragging) return;
+        
+        item.classList.add('pressing');
+        
+        // 记录起始位置
+        const touch = e.touches ? e.touches[0] : e;
+        startY = touch.clientY;
+        
+        longPressTimer = setTimeout(() => {
+          // 触发拖动
+          isDragging = true;
+          draggedItem = item;
+          itemHeight = item.offsetHeight;
+          
+          // 创建占位符
+          placeholder = createPlaceholder(itemHeight);
+          item.parentNode.insertBefore(placeholder, item.nextSibling);
+          
+          // 设置拖动样式 - 绝对定位跟随鼠标
+          item.classList.remove('pressing');
+          item.classList.add('dragging');
+          
+          const rect = item.getBoundingClientRect();
+          const listRect = itemList.getBoundingClientRect();
+          
+          // 计算相对于列表的位置
+          const relativeTop = rect.top - listRect.top + itemList.scrollTop;
+          
+          item.style.position = 'absolute';
+          item.style.width = rect.width + 'px';
+          item.style.zIndex = '1000';
+          item.style.left = '0';
+          item.style.top = relativeTop + 'px';
+          item.style.margin = '0';
+          
+          // 记录初始相对位置，用于后续计算
+          item.dataset.initialTop = relativeTop;
+          
+          // 震动反馈（如果支持）
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+          
+          showToast('拖动排序中...');
+        }, LONG_PRESS_DURATION);
+      }
+
+      // 取消长按
+      function cancelLongPress(item) {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+        if (item && !isDragging) {
+          item.classList.remove('pressing');
+        }
+      }
+
+      // 结束拖动
+      function endDrag() {
+        if (!isDragging || !draggedItem) return;
+        
+        // 保存当前被拖动元素的引用
+        const item = draggedItem;
+        const ph = placeholder;
+        
+        // 获取所有被挤压的元素
+        const squeezedItems = Array.from(itemList.querySelectorAll('.item-card.squeezed'));
+        
+        // 先移除占位符的 active 类，让它收缩
+        if (ph) {
+          ph.classList.remove('active');
+        }
+        
+        // 延迟后完成归位
+        setTimeout(() => {
+          // 将拖动的卡片插入到占位符位置
+          if (ph && ph.parentNode) {
+            ph.parentNode.insertBefore(item, ph);
+          }
+          
+          // 移除拖动样式
+          item.classList.remove('dragging');
+          item.style.position = '';
+          item.style.zIndex = '';
+          item.style.width = '';
+          item.style.left = '';
+          item.style.top = '';
+          item.style.margin = '';
+          item.style.transform = '';
+          item.style.transition = '';
+          
+          // 移除占位符
+          if (ph && ph.parentNode) {
+            ph.parentNode.removeChild(ph);
+          }
+          
+          // 为被挤压的元素添加回弹动画
+          squeezedItems.forEach(squeezedItem => {
+            squeezedItem.classList.remove('squeezed');
+            squeezedItem.classList.add('bounce-back');
+            // 动画结束后移除类
+            setTimeout(() => {
+              squeezedItem.classList.remove('bounce-back');
+            }, 400);
+          });
+          
+          // 保存排序
+          saveOrder();
+          
+          isDragging = false;
+          draggedItem = null;
+          placeholder = null;
+        }, 200);
+      }
+
+      // 处理拖动中的移动
+      function handleMove(e) {
+        if (!isDragging || !draggedItem) return;
+        
+        e.preventDefault();
+        
+        const touch = e.touches ? e.touches[0] : e;
+        const deltaY = touch.clientY - startY;
+        
+        // 获取初始相对位置
+        const initialTop = parseFloat(draggedItem.dataset.initialTop) || 0;
+        
+        // 更新被拖动卡片的位置 - 基于绝对定位 + 偏移量
+        const floatOffset = Math.sin(Date.now() / 200) * 3;
+        draggedItem.style.top = (initialTop + deltaY + floatOffset) + 'px';
+        draggedItem.style.transform = 'scale(1.02)';
+        
+        // 使用鼠标/手指位置来判断目标位置
+        const pointerY = touch.clientY;
+        
+        // 找到当前位置下的元素
+        const items = Array.from(itemList.querySelectorAll('.item-card:not(.dragging)'));
+        let targetItem = null;
+        let targetIndex = -1;
+        
+        items.forEach((item, index) => {
+          const itemRect = item.getBoundingClientRect();
+          const itemMiddle = itemRect.top + itemRect.height / 2;
+          
+          // 当鼠标位置超过元素中心点时，目标为该元素
+          if (pointerY < itemMiddle) {
+            if (!targetItem) {
+              targetItem = item;
+              targetIndex = index;
+            }
+          }
+        });
+        
+        // 为靠近目标位置的元素添加挤压效果
+        items.forEach((item, index) => {
+          // 清除之前的挤压效果
+          item.classList.remove('squeezed');
+          
+          // 如果目标位置确定，为目标元素及其前后元素添加挤压效果
+          if (targetIndex !== -1) {
+            // 目标元素和紧邻的元素会被挤压
+            if (index === targetIndex || index === targetIndex - 1) {
+              item.classList.add('squeezed');
+            }
+          } else {
+            // 如果没有目标（拖到最底部），挤压最后一个元素
+            if (index === items.length - 1) {
+              item.classList.add('squeezed');
+            }
+          }
+        });
+        
+        // 移动占位符
+        if (targetItem && placeholder) {
+          itemList.insertBefore(placeholder, targetItem);
+        } else if (placeholder) {
+          itemList.appendChild(placeholder);
+        }
+      }
+
+      // 保存排序到 localStorage
+      function saveOrder() {
+        const items = itemList.querySelectorAll('.item-card');
+        const order = Array.from(items).map(item => {
+          const input = item.querySelector('.item-input');
+          return input ? input.getAttribute('data-id') : null;
+        }).filter(id => id !== null);
+        
+        localStorage.setItem('item_order', JSON.stringify(order));
+      }
+
+      // 默认排序
+      const DEFAULT_ORDER = [
+        'mecha_ore',           // 机甲源石
+        'orange_light_energy', // 橙光能源
+        'pet_energy',          // 宠物能量
+        'crystal_ball',        // 水晶球
+        'gold_crystal_energy', // 金晶能量
+        'wish_coin',           // 许愿金币
+        'realm_energy',        // 幻境能量
+        'starwish_crystal',    // 心愿水晶
+        'prayer_card',         // 祈愿卡
+        'illusion_crystal',    // 幻生水晶
+        'star_coin',           // 摘星币
+        'time_sandglass'       // 时空沙漏
+      ];
+
+      // 恢复排序
+      function restoreOrder() {
+        let order = DEFAULT_ORDER;
+        
+        // 如果有保存的自定义排序，使用自定义排序
+        const savedOrder = localStorage.getItem('item_order');
+        if (savedOrder) {
+          try {
+            order = JSON.parse(savedOrder);
+          } catch (e) {
+            console.error('解析保存的排序失败:', e);
+          }
+        }
+        
+        try {
+          const items = Array.from(itemList.querySelectorAll('.item-card'));
+          const itemMap = new Map();
+          
+          items.forEach(item => {
+            const input = item.querySelector('.item-input');
+            if (input) {
+              itemMap.set(input.getAttribute('data-id'), item);
+            }
+          });
+          
+          // 按照顺序重新排列
+          order.forEach(id => {
+            const item = itemMap.get(id);
+            if (item) {
+              itemList.appendChild(item);
+            }
+          });
+        } catch (e) {
+          console.error('恢复排序失败:', e);
+        }
+      }
+
+      // 为每个卡片添加事件监听
+      itemCards.forEach(item => {
+        // 鼠标/触摸开始
+        item.addEventListener('mousedown', (e) => startLongPress(e, item));
+        item.addEventListener('touchstart', (e) => startLongPress(e, item), { passive: true });
+        
+        // 鼠标/触摸结束
+        item.addEventListener('mouseup', () => cancelLongPress(item));
+        item.addEventListener('touchend', () => cancelLongPress(item));
+        item.addEventListener('mouseleave', () => cancelLongPress(item));
+        item.addEventListener('touchcancel', () => cancelLongPress(item));
+      });
+
+      // 全局移动和结束事件
+      document.addEventListener('mousemove', handleMove);
+      document.addEventListener('touchmove', handleMove, { passive: true });
+      document.addEventListener('mouseup', endDrag);
+      document.addEventListener('touchend', endDrag);
+
+      // 页面加载时恢复排序
+      restoreOrder();
+    })();
+
+    // 分享按钮点击事件
+    document.getElementById('share-btn').addEventListener('click', async function() {
+      const compareResult = document.getElementById('compare-result');
+      const screenshotModal = document.getElementById('screenshot-modal');
+      const screenshotImg = document.getElementById('screenshot-img');
+
+      // 显示加载提示
+      showToast('正在生成截图...');
+
+      try {
+        // 创建截图容器
+        const captureContainer = document.createElement('div');
+        captureContainer.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background: #f5f6f8;
+          z-index: 99999;
+          overflow: auto;
+          padding: 20px;
+          box-sizing: border-box;
+        `;
+
+        // 深克隆对比结果内容
+        const clonedContent = compareResult.cloneNode(true);
+
+        // 移除顶部操作栏
+        const clonedHeader = clonedContent.querySelector('.compare-result-header');
+        if (clonedHeader) {
+          clonedHeader.remove();
+        }
+
+        // 确保克隆的内容显示正常，并移除动画
+        clonedContent.style.cssText = `
+          display: flex !important;
+          position: static !important;
+          transform: none !important;
+          opacity: 1 !important;
+          width: 100% !important;
+          max-width: 600px !important;
+          margin: 0 auto !important;
+          background: #f5f6f8 !important;
+        `;
+
+        // 移除所有卡片的动画，确保完全显示
+        const itemCards = clonedContent.querySelectorAll('.compare-item-card');
+        itemCards.forEach(card => {
+          card.style.animation = 'none';
+          card.style.opacity = '1';
+          card.style.transform = 'none';
+        });
+
+        captureContainer.appendChild(clonedContent);
+        document.body.appendChild(captureContainer);
+
+        // 强制回流以确保布局正确
+        captureContainer.offsetHeight;
+
+        // 等待图片加载和DOM渲染
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // 使用 html2canvas 截图整个容器
+        const canvas = await html2canvas(captureContainer, {
+          backgroundColor: '#f5f6f8',
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          windowWidth: captureContainer.scrollWidth,
+          windowHeight: captureContainer.scrollHeight
+        });
+
+        // 移除临时容器
+        document.body.removeChild(captureContainer);
+
+        // 显示截图预览
+        screenshotImg.src = canvas.toDataURL('image/png');
+        screenshotModal.classList.add('show');
+
+        // 保存canvas引用供下载使用
+        window.screenshotCanvas = canvas;
+
+      } catch (error) {
+        console.error('截图失败:', error);
+        showToast('截图生成失败，请重试');
+      }
+    });
+
+    // 取消截图预览
+    document.getElementById('screenshot-cancel').addEventListener('click', function() {
+      document.getElementById('screenshot-modal').classList.remove('show');
+      window.screenshotCanvas = null;
+    });
+
+    // 时间编辑按钮点击事件
+    document.getElementById('edit-time-btn').addEventListener('click', function() {
+      const modal = document.getElementById('time-edit-modal');
+      const input = document.getElementById('time-edit-input');
+
+      // 将当前时间戳转换为 datetime-local 格式
+      const timestamp = window.currentEditingHistoryTimestamp;
+      if (timestamp) {
+        const date = new Date(timestamp);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        input.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+      }
+
+      modal.classList.add('show');
+    });
+
+    // 时间编辑弹窗取消按钮
+    document.getElementById('time-edit-cancel').addEventListener('click', function() {
+      document.getElementById('time-edit-modal').classList.remove('show');
+    });
+
+    // 时间编辑弹窗确定按钮
+    document.getElementById('time-edit-confirm').addEventListener('click', function() {
+      const input = document.getElementById('time-edit-input');
+      const timeText = document.getElementById('edit-time-text');
+
+      if (input.value) {
+        const selectedDate = new Date(input.value);
+        window.currentEditingHistoryTimestamp = selectedDate.getTime();
+        timeText.textContent = selectedDate.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-');
+      }
+
+      document.getElementById('time-edit-modal').classList.remove('show');
+    });
+
+    // 点击时间编辑弹窗背景关闭
+    document.getElementById('time-edit-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('show');
+      }
+    });
+
+    // 下载截图
+    document.getElementById('screenshot-download').addEventListener('click', function() {
+      if (window.screenshotCanvas) {
+        const link = document.createElement('a');
+        link.download = `QQ飞车道具对比_${new Date().toLocaleDateString()}.png`;
+        link.href = window.screenshotCanvas.toDataURL('image/png');
+        link.click();
+        showToast('图片已保存！');
+        document.getElementById('screenshot-modal').classList.remove('show');
+        window.screenshotCanvas = null;
+      }
+    });
+
+    // 点击遮罩关闭预览
+    document.getElementById('screenshot-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('show');
+        window.screenshotCanvas = null;
+      }
+    });
+  </script>
+</body>
+</html>
