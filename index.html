@@ -152,6 +152,43 @@
       font-size: 18px;
     }
 
+    /* 排序模式样式 */
+    body.sort-mode .item-card {
+      cursor: grab;
+      position: relative;
+    }
+
+    body.sort-mode .item-card:active {
+      cursor: grabbing;
+    }
+
+    body.sort-mode .item-card.dragging {
+      opacity: 0.8;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      z-index: 1000;
+    }
+
+    body.sort-mode #sort-mode-btn {
+      background: linear-gradient(135deg, #4caf50, #45a049);
+      color: #fff;
+    }
+
+    .sort-mode-hint {
+      display: none;
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px dashed #4caf50;
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      text-align: center;
+      color: #4caf50;
+      font-size: 14px;
+    }
+
+    body.sort-mode .sort-mode-hint {
+      display: block;
+    }
+
     .stats-item {
       text-align: center;
     }
@@ -221,6 +258,11 @@
     .item-card.pressing {
       transform: scale(0.95);
       transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .item-card.pressing {
+      transform: scale(0.98);
+      transition: transform 0.15s ease;
     }
 
     .item-card-placeholder {
@@ -1732,18 +1774,6 @@
         <div class="icon"><img src="images/icon_prop_diamond.png" alt="钻石"></div>
         钻石数量
       </div>
-      <!-- 编辑模式下的时间显示 -->
-      <div class="edit-time-header" id="edit-time-display" style="display: none;">
-        <span class="edit-time-date" id="edit-time-text"></span>
-        <button class="edit-time-icon-btn" id="edit-time-btn" title="编辑时间">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-        </button>
-      </div>
     </div>
     <div class="diamond-row">
       <div class="diamond-display" id="diamond-count" data-id="diamond">0</div>
@@ -1755,6 +1785,10 @@
       <button class="action-btn" id="history-btn">
         <span class="action-icon">📜</span>
         <span>历史记录</span>
+      </button>
+      <button class="action-btn" id="sort-mode-btn">
+        <span class="action-icon">⇅</span>
+        <span>排序</span>
       </button>
       <button class="action-btn primary" id="save-btn">
         <span class="action-icon">💾</span>
@@ -1782,6 +1816,8 @@
 
   <!-- 道具列表 -->
   <div class="item-list" id="item-list">
+    <!-- 排序模式提示 -->
+    <div class="sort-mode-hint">👋 拖动卡片可调整顺序，点击"排序模式"按钮退出</div>
     <!-- 取消编辑按钮（在编辑历史记录时显示） -->
     <button class="history-cancel-edit" id="history-cancel-edit">
       <span>←</span>
@@ -2297,6 +2333,43 @@
       btn.addEventListener('touchcancel', function(e) {
         this.classList.remove('pressing');
       }, { passive: true });
+    });
+
+    // 道具卡片按压效果（非排序模式下）
+    document.querySelectorAll('.item-card').forEach(card => {
+      // 触摸开始
+      card.addEventListener('touchstart', function(e) {
+        if (!document.body.classList.contains('sort-mode')) {
+          this.classList.add('pressing');
+        }
+      }, { passive: true });
+      
+      // 触摸结束
+      card.addEventListener('touchend', function(e) {
+        this.classList.remove('pressing');
+      }, { passive: true });
+      
+      // 触摸取消
+      card.addEventListener('touchcancel', function(e) {
+        this.classList.remove('pressing');
+      }, { passive: true });
+      
+      // 鼠标按下
+      card.addEventListener('mousedown', function(e) {
+        if (!document.body.classList.contains('sort-mode')) {
+          this.classList.add('pressing');
+        }
+      });
+      
+      // 鼠标松开
+      card.addEventListener('mouseup', function(e) {
+        this.classList.remove('pressing');
+      });
+      
+      // 鼠标离开
+      card.addEventListener('mouseleave', function(e) {
+        this.classList.remove('pressing');
+      });
     });
     
     document.querySelectorAll('.item-btn.minus').forEach(btn => {
@@ -3076,134 +3149,111 @@
       }
     });
 
+    // ==================== 排序模式功能 ====================
+    let isSortMode = false;
+    const sortModeBtn = document.getElementById('sort-mode-btn');
+
+    sortModeBtn.addEventListener('click', function() {
+      isSortMode = !isSortMode;
+      
+      if (isSortMode) {
+        // 进入排序模式
+        document.body.classList.add('sort-mode');
+        showToast('已进入排序模式，拖动卡片可调整顺序');
+        
+        // 启用拖拽功能
+        enableDragSort();
+      } else {
+        // 退出排序模式
+        document.body.classList.remove('sort-mode');
+        showToast('已退出排序模式');
+        
+        // 禁用拖拽功能
+        disableDragSort();
+      }
+    });
+
     // 页面加载时读取数据
     loadData();
 
-    // ==================== 长按拖动排序功能 ====================
+    // ==================== 拖拽排序功能 ====================
     (function() {
       const itemList = document.querySelector('.item-list');
-      const itemCards = document.querySelectorAll('.item-card');
-      
-      let longPressTimer = null;
       let isDragging = false;
       let draggedItem = null;
       let placeholder = null;
       let startY = 0;
-      let currentY = 0;
       let itemHeight = 0;
-      const LONG_PRESS_DURATION = 500; // 长按触发时间（毫秒）
+      let dragHandlers = [];
 
       // 创建占位符
       function createPlaceholder(height) {
         const div = document.createElement('div');
         div.className = 'item-card-placeholder';
-        // 使用 requestAnimationFrame 确保动画触发
         requestAnimationFrame(() => {
           div.classList.add('active');
         });
         return div;
       }
 
-      // 获取元素在列表中的索引
-      function getItemIndex(item) {
-        const items = Array.from(itemList.querySelectorAll('.item-card'));
-        return items.indexOf(item);
-      }
-
-      // 交换元素位置
-      function swapItems(fromIndex, toIndex) {
-        const items = Array.from(itemList.querySelectorAll('.item-card'));
-        if (fromIndex < toIndex) {
-          itemList.insertBefore(items[fromIndex], items[toIndex].nextSibling);
-        } else {
-          itemList.insertBefore(items[fromIndex], items[toIndex]);
-        }
-      }
-
-        // 开始长按
-      function startLongPress(e, item) {
+      // 开始拖动
+      function startDrag(e, item) {
         if (isDragging) return;
         
-        item.classList.add('pressing');
+        e.preventDefault();
+        
+        isDragging = true;
+        draggedItem = item;
+        itemHeight = item.offsetHeight;
+        
+        // 创建占位符
+        placeholder = createPlaceholder(itemHeight);
+        item.parentNode.insertBefore(placeholder, item.nextSibling);
+        
+        // 设置拖动样式
+        item.classList.add('dragging');
+        
+        const rect = item.getBoundingClientRect();
+        const listRect = itemList.getBoundingClientRect();
+        const relativeTop = rect.top - listRect.top + itemList.scrollTop;
+        
+        item.style.position = 'absolute';
+        item.style.width = rect.width + 'px';
+        item.style.zIndex = '1000';
+        item.style.left = '0';
+        item.style.top = relativeTop + 'px';
+        item.style.margin = '0';
+        item.dataset.initialTop = relativeTop;
         
         // 记录起始位置
         const touch = e.touches ? e.touches[0] : e;
         startY = touch.clientY;
         
-        longPressTimer = setTimeout(() => {
-          // 触发拖动
-          isDragging = true;
-          draggedItem = item;
-          itemHeight = item.offsetHeight;
-          
-          // 创建占位符
-          placeholder = createPlaceholder(itemHeight);
-          item.parentNode.insertBefore(placeholder, item.nextSibling);
-          
-          // 设置拖动样式 - 绝对定位跟随鼠标
-          item.classList.remove('pressing');
-          item.classList.add('dragging');
-          
-          const rect = item.getBoundingClientRect();
-          const listRect = itemList.getBoundingClientRect();
-          
-          // 计算相对于列表的位置
-          const relativeTop = rect.top - listRect.top + itemList.scrollTop;
-          
-          item.style.position = 'absolute';
-          item.style.width = rect.width + 'px';
-          item.style.zIndex = '1000';
-          item.style.left = '0';
-          item.style.top = relativeTop + 'px';
-          item.style.margin = '0';
-          
-          // 记录初始相对位置，用于后续计算
-          item.dataset.initialTop = relativeTop;
-          
-          // 震动反馈（如果支持）
-          if (navigator.vibrate) {
-            navigator.vibrate(50);
-          }
-          
-          showToast('拖动排序中...');
-        }, LONG_PRESS_DURATION);
-      }
-
-      // 取消长按
-      function cancelLongPress(item) {
-        if (longPressTimer) {
-          clearTimeout(longPressTimer);
-          longPressTimer = null;
+        // 震动反馈
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
         }
-        if (item && !isDragging) {
-          item.classList.remove('pressing');
-        }
+        
+        showToast('拖动中...');
       }
 
       // 结束拖动
       function endDrag() {
         if (!isDragging || !draggedItem) return;
         
-        // 保存当前被拖动元素的引用
         const item = draggedItem;
         const ph = placeholder;
-        
-        // 获取所有被挤压的元素
         const squeezedItems = Array.from(itemList.querySelectorAll('.item-card.squeezed'));
         
-        // 先移除占位符的 active 类，让它收缩
         if (ph) {
           ph.classList.remove('active');
         }
         
-        // 延迟后完成归位
         setTimeout(() => {
-          // 将拖动的卡片插入到占位符位置
           if (ph && ph.parentNode) {
             ph.parentNode.insertBefore(item, ph);
           }
           
-          // 移除拖动样式
           item.classList.remove('dragging');
           item.style.position = '';
           item.style.zIndex = '';
@@ -3212,24 +3262,15 @@
           item.style.top = '';
           item.style.margin = '';
           item.style.transform = '';
-          item.style.transition = '';
           
-          // 移除占位符
           if (ph && ph.parentNode) {
             ph.parentNode.removeChild(ph);
           }
           
-          // 为被挤压的元素添加回弹动画
           squeezedItems.forEach(squeezedItem => {
             squeezedItem.classList.remove('squeezed');
-            squeezedItem.classList.add('bounce-back');
-            // 动画结束后移除类
-            setTimeout(() => {
-              squeezedItem.classList.remove('bounce-back');
-            }, 400);
           });
           
-          // 保存排序
           saveOrder();
           
           isDragging = false;
@@ -3246,19 +3287,12 @@
         
         const touch = e.touches ? e.touches[0] : e;
         const deltaY = touch.clientY - startY;
-        
-        // 获取初始相对位置
         const initialTop = parseFloat(draggedItem.dataset.initialTop) || 0;
         
-        // 更新被拖动卡片的位置 - 基于绝对定位 + 偏移量
-        const floatOffset = Math.sin(Date.now() / 200) * 3;
-        draggedItem.style.top = (initialTop + deltaY + floatOffset) + 'px';
+        draggedItem.style.top = (initialTop + deltaY) + 'px';
         draggedItem.style.transform = 'scale(1.02)';
         
-        // 使用鼠标/手指位置来判断目标位置
         const pointerY = touch.clientY;
-        
-        // 找到当前位置下的元素
         const items = Array.from(itemList.querySelectorAll('.item-card:not(.dragging)'));
         let targetItem = null;
         let targetIndex = -1;
@@ -3267,7 +3301,6 @@
           const itemRect = item.getBoundingClientRect();
           const itemMiddle = itemRect.top + itemRect.height / 2;
           
-          // 当鼠标位置超过元素中心点时，目标为该元素
           if (pointerY < itemMiddle) {
             if (!targetItem) {
               targetItem = item;
@@ -3276,26 +3309,20 @@
           }
         });
         
-        // 为靠近目标位置的元素添加挤压效果
         items.forEach((item, index) => {
-          // 清除之前的挤压效果
           item.classList.remove('squeezed');
           
-          // 如果目标位置确定，为目标元素及其前后元素添加挤压效果
           if (targetIndex !== -1) {
-            // 目标元素和紧邻的元素会被挤压
             if (index === targetIndex || index === targetIndex - 1) {
               item.classList.add('squeezed');
             }
           } else {
-            // 如果没有目标（拖到最底部），挤压最后一个元素
             if (index === items.length - 1) {
               item.classList.add('squeezed');
             }
           }
         });
         
-        // 移动占位符
         if (targetItem && placeholder) {
           itemList.insertBefore(placeholder, targetItem);
         } else if (placeholder) {
@@ -3303,7 +3330,7 @@
         }
       }
 
-      // 保存排序到 localStorage
+      // 保存排序
       function saveOrder() {
         const items = itemList.querySelectorAll('.item-card');
         const order = Array.from(items).map(item => {
@@ -3316,25 +3343,14 @@
 
       // 默认排序
       const DEFAULT_ORDER = [
-        'mecha_ore',           // 机甲源石
-        'orange_light_energy', // 橙光能源
-        'pet_energy',          // 宠物能量
-        'crystal_ball',        // 水晶球
-        'gold_crystal_energy', // 金晶能量
-        'wish_coin',           // 许愿金币
-        'realm_energy',        // 幻境能量
-        'starwish_crystal',    // 心愿水晶
-        'prayer_card',         // 祈愿卡
-        'illusion_crystal',    // 幻生水晶
-        'star_coin',           // 摘星币
-        'time_sandglass'       // 时空沙漏
+        'mecha_ore', 'orange_light_energy', 'pet_energy', 'crystal_ball',
+        'gold_crystal_energy', 'wish_coin', 'realm_energy', 'starwish_crystal',
+        'prayer_card', 'illusion_crystal', 'star_coin', 'time_sandglass'
       ];
 
       // 恢复排序
       function restoreOrder() {
         let order = DEFAULT_ORDER;
-        
-        // 如果有保存的自定义排序，使用自定义排序
         const savedOrder = localStorage.getItem('item_order');
         if (savedOrder) {
           try {
@@ -3355,7 +3371,6 @@
             }
           });
           
-          // 按照顺序重新排列
           order.forEach(id => {
             const item = itemMap.get(id);
             if (item) {
@@ -3367,24 +3382,39 @@
         }
       }
 
-      // 为每个卡片添加事件监听
-      itemCards.forEach(item => {
-        // 鼠标/触摸开始
-        item.addEventListener('mousedown', (e) => startLongPress(e, item));
-        item.addEventListener('touchstart', (e) => startLongPress(e, item), { passive: true });
+      // 启用拖拽排序
+      window.enableDragSort = function() {
+        const itemCards = document.querySelectorAll('.item-card');
         
-        // 鼠标/触摸结束
-        item.addEventListener('mouseup', () => cancelLongPress(item));
-        item.addEventListener('touchend', () => cancelLongPress(item));
-        item.addEventListener('mouseleave', () => cancelLongPress(item));
-        item.addEventListener('touchcancel', () => cancelLongPress(item));
-      });
+        itemCards.forEach(item => {
+          const mousedownHandler = (e) => startDrag(e, item);
+          const touchstartHandler = (e) => startDrag(e, item);
+          
+          item.addEventListener('mousedown', mousedownHandler);
+          item.addEventListener('touchstart', touchstartHandler, { passive: false });
+          
+          dragHandlers.push({ item, mousedownHandler, touchstartHandler });
+        });
+        
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('touchmove', handleMove, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+      };
 
-      // 全局移动和结束事件
-      document.addEventListener('mousemove', handleMove);
-      document.addEventListener('touchmove', handleMove, { passive: true });
-      document.addEventListener('mouseup', endDrag);
-      document.addEventListener('touchend', endDrag);
+      // 禁用拖拽排序
+      window.disableDragSort = function() {
+        dragHandlers.forEach(({ item, mousedownHandler, touchstartHandler }) => {
+          item.removeEventListener('mousedown', mousedownHandler);
+          item.removeEventListener('touchstart', touchstartHandler);
+        });
+        dragHandlers = [];
+        
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('touchmove', handleMove);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchend', endDrag);
+      };
 
       // 页面加载时恢复排序
       restoreOrder();
