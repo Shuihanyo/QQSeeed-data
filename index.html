@@ -951,9 +951,10 @@
       background: #fff;
       border-radius: 20px;
       padding: 24px;
-      width: 100%;
+      width: 90%;
       max-width: 320px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      box-sizing: border-box;
     }
 
     .time-edit-title {
@@ -980,12 +981,24 @@
       border-color: #ff9800;
     }
 
-    /* 移动端时间编辑输入框适配 */
+    /* 移动端时间编辑弹窗适配 */
     @media (max-width: 480px) {
-      .time-edit-input {
-        padding: 10px;
-        font-size: 13px;
+      .time-edit-modal {
+        padding: 16px;
+      }
+      .time-edit-content {
+        padding: 20px 16px;
         width: 100%;
+        max-width: none;
+      }
+      .time-edit-title {
+        font-size: 16px;
+        margin-bottom: 14px;
+      }
+      .time-edit-input {
+        padding: 12px;
+        font-size: 14px;
+        margin-bottom: 14px;
       }
     }
 
