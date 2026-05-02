@@ -985,11 +985,14 @@
     @media (max-width: 480px) {
       .time-edit-modal {
         padding: 16px;
+        align-items: flex-start;
+        padding-top: 80px;
       }
       .time-edit-content {
         padding: 20px 16px;
         width: 100%;
-        max-width: none;
+        max-width: 320px;
+        margin: 0 auto;
       }
       .time-edit-title {
         font-size: 16px;
@@ -999,6 +1002,16 @@
         padding: 12px;
         font-size: 14px;
         margin-bottom: 14px;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+    }
+
+    /* iOS Safari 特殊适配 */
+    @supports (-webkit-touch-callout: none) {
+      .time-edit-input {
+        min-height: 44px;
+        line-height: 1.2;
       }
     }
 
