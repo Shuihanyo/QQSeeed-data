@@ -2965,6 +2965,13 @@
         diamondDisplay.contentEditable = true;
         diamondDisplay.classList.add('editing');
         diamondDisplay.focus();
+        // 将光标移到文本末尾
+        const range = document.createRange();
+        range.selectNodeContents(diamondDisplay);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
         editBtn.textContent = '✓';
         editBtn.title = '完成';
         editBtn.classList.remove('edit-mode');
