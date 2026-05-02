@@ -906,6 +906,28 @@
       stroke: currentColor;
     }
 
+    /* 移动端时间显示适配 */
+    @media (max-width: 480px) {
+      .edit-time-header {
+        gap: 4px;
+      }
+      .edit-time-date {
+        font-size: 11px;
+        max-width: 110px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .edit-time-icon-btn {
+        width: 24px;
+        height: 24px;
+      }
+      .edit-time-icon-btn svg {
+        width: 14px;
+        height: 14px;
+      }
+    }
+
     /* 时间编辑弹窗 */
     .time-edit-modal {
       display: none;
